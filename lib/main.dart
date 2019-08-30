@@ -1,3 +1,5 @@
+import 'dart:async' as prefix0;
+
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -72,25 +74,42 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void uploadImages(List<Asset> assets){
+  Future<String> getUploadUrl(Asset asset) async{
+    ByteData byteData = await asset.requestOriginal();
+    List<int> imageData = byteData.buffer.asUint8List();
+    StorageReference ref = FirebaseStorage.instance.ref().child(asset.name);
+    StorageUploadTask uploadTask = ref.putData(imageData);
+
+    return (await uploadTask.onComplete).ref.getDownloadURL().toString();
+  }
+
+  urls(List<Asset> assets){
+    var listOfUrls = [];
+
+  }
+
+  Future<List<String>> uploadImages(List<Asset> assets) async{
     print('Uploading Images');
-    assets.forEach((asset) async{
+    List<String> urls = [];
+    await Future.forEach(assets, (asset) async {
       try{
         ByteData byteData = await asset.requestOriginal();
         List<int> imageData = byteData.buffer.asUint8List();
         StorageReference ref = FirebaseStorage.instance.ref().child(asset.name);
         StorageUploadTask uploadTask = ref.putData(imageData);
 
-        await (await uploadTask.onComplete).ref.getDownloadURL();
-
+        String url = await (await uploadTask.onComplete).ref.getDownloadURL();
+        urls.add(url.toString());
         print('Done Uploading Images');
       }catch(e){
         print('--------------Error while uploading------ ($e)');
       }
     });
+    print(urls);
     setState(() {
       images = List<Asset>();
     });
+    return urls;
   }
 
 
